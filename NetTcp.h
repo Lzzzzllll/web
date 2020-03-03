@@ -20,64 +20,60 @@ static inline void _socket_start(void) { WSACleanup(); }
 typedef int SOCKET;
 #endif
 
-typedef struct sockaddr_in sockaddr_t;
+// 目前通用的tcp udp v4地址
+typedef struct sockaddr_in sockaddr_t;  // 与sockaddr 有区别
 
-class NetTcp
+namespace GAG
 {
-public:
-  enum class Status : int32_t
-  {
-    ConnectIng = 0,
-    ConnectOK = -1,
-    ConnectFail = -2,
-    NetError = -3,
-    Timeout = -4,
-    CloseByPeer = -5,
-  };
+	class NetTcp
+	{
+	public:
+		enum class Status : int32_t
+		{
+			ConnectIng	= 0,
+			ConnectOK	= -1,
+			ConnectFail = -2,
+			NetError	= -3,
+			Timeout		= -4,
+			CloseByPeer = -5,
+		};
 
-  NetTcp() {}
-  explicit NetTcp(kj::String&& name, std::string& addr);
-  const kj::String& GetName() const { return name; }
+		NetTcp() {}
+		explicit NetTcp(kj::String&& name, std::string& addr);
+		~NetTcp();
+		NetTcp& operator=(NetTcp&);
 
-  ~NetTcp();
-  NetTcp& operator=(NetTcp&);
+		const kj::String& GetName() const { return name; }
+		bool Init(int id, int64_t& now);
 
-  bool Init(int id, int64_t& now);
-  void SendMsg(int id, bool response, int session, int code, kj::Array<const capnp::word>&& data);
-  bool ReceiveMsg(int id, int64_t& now);
+		void SendMsg(int id, bool response, int session, int code, kj::Array<const capnp::word>&& data);
+		bool ReceiveMsg(int id, int64_t& now);
 
-  bool CheckTimeout(int id);
-  bool CheckConnectIng(int id, int64_t& now);
-  void SendPing(int id, int64_t& now);
+		bool CheckTimeout(int id, int64_t& now);
+		void SendPing(int id, int64_t& now);
 
-  Status GetStatus() { return status; }
-  int64_t GetLastRecvTime() { return last_recv_timestamp; }
-  int64_t GetClientTime() { return client_timestamp; }
-  int64_t GetServerTime() { return server_timestamp; }
+	private:
 
-  void SetStatus(Status _status) { status = _status; }
-  void SetClientTime(int64_t& time) { client_timestamp = time; }
+		kj::String	name;
+		std::string addr;
 
-private:
+		SOCKET s_;
+		std::string send_buffer;
+		std::string recv_buffer;
+		Status status;
 
-  kj::String	name;
-  std::string addr;
+		int64_t client_timestamp; // ping when client send
+		int64_t server_timestamp; // ping when client recv from server
+		int64_t last_recv_timestamp;
 
-  SOCKET s_;
-  std::string send_buffer;
-  std::string recv_buffer;
-  Status status;
+	private:
+		void SocketStart();
+		int  SocketSetNonblock();
+		int  SocketClose();
+		int  SocketConnect(const sockaddr_t * addr, int id, int64_t& now);
+		int	 SocketSelectConnect(int ms);
 
-  int64_t client_timestamp;
-  int64_t server_timestamp;
-  int64_t last_recv_timestamp;
-
-  void socket_start(void);
-  int  socket_set_nonblock();
-  int  socket_close(Status _status = Status::ConnectOK);
-  int  socket_connect(const sockaddr_t * addr);
-  int	 socket_select_connect(int ms);
-
-  bool IsMessageComplete(int id);
-  void DispatchMessage(int id, int64_t& now);
-};
+		bool CheckMessageComplete(int id);
+		void DispatchMessage(int id, int64_t& now);
+	};
+}
