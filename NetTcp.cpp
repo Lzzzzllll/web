@@ -392,6 +392,12 @@ namespace GAG
 			else
 			{
 				data = kj::heapArray<capnp::word>(size);
+				if (recv_buffer.size() < sizeof(NetHeader) + size * sizeof(capnp::word))
+				{
+					status = Status::NetError;
+					//NetHost::Control()->queueRep.Enqueue(NetControl::Recv{ id, false, (int)status, (int)status, nullptr });
+					NET_CONTROL_RECV((int)status, (int)status);
+				}
 				memcpy(data.begin(), recv_buffer.c_str() + sizeof(NetHeader), size * sizeof(capnp::word));
 			}
 		}
