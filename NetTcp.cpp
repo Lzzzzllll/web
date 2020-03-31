@@ -352,7 +352,7 @@ namespace GAG
 			return false;
 		}
 
-		if (packsize > recv_buffer.size())
+		if (packsize + sizeof(NetHeader::size) > recv_buffer.size())
 		{
 			//LogDebug("IsMessageComplete", id, packsize, recv_buffer.size());
 			return false;
